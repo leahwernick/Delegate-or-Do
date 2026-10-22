@@ -1,0 +1,215 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Delegate or Do</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one triage desk — a task card in the middle, three trays beneath, a ledger strip on top */
+:root{
+  --bg:#e4e8ef; --desk:#d6dce6; --card:#fbfcfd; --ink:#18202c; --muted:#5a6578; --line:#c3cbd8;
+  --ai:#5b4bd1; --pair:#0f7f78; --solo:#b4610d; --good:#1f7a3d; --meh:#9a6a00; --bad:#b3312c;
+  --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121822; --desk:#1a2230; --card:#222c3c; --ink:#e9edf4; --muted:#9aa6ba; --line:#344056;
+  --ai:#a397ff; --pair:#4fcfc4; --solo:#f0a456; --good:#6dd28e; --meh:#e7c35a; --bad:#ff8a80; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121822; --desk:#1a2230; --card:#222c3c; --ink:#e9edf4; --muted:#9aa6ba; --line:#344056;
+  --ai:#a397ff; --pair:#4fcfc4; --solo:#f0a456; --good:#6dd28e; --meh:#e7c35a; --bad:#ff8a80; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,6vw,2.8rem);font-weight:800;letter-spacing:-.02em;line-height:1}
+.lede{color:var(--muted);margin:6px 0 0;max-width:60ch}
+.label{font:500 .72rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ledger{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.pips{display:flex;gap:5px;flex-wrap:wrap}
+.pip{width:14px;height:14px;border-radius:3px;border:1.5px solid var(--line);background:transparent}
+.pip.g{background:var(--good);border-color:var(--good)} .pip.m{background:var(--meh);border-color:var(--meh)} .pip.b{background:var(--bad);border-color:var(--bad)}
+.pip.now{border-color:var(--ink)}
+.score{font:500 .9rem var(--mono);font-variant-numeric:tabular-nums}
+.desk{background:var(--desk);border-radius:14px;padding:22px clamp(14px,4vw,28px);display:flex;flex-direction:column;gap:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:22px;box-shadow:0 2px 0 var(--line),0 10px 24px -14px rgba(0,0,0,.35);
+  transform-origin:50% 120%;animation:deal .32s ease-out}
+@keyframes deal{from{transform:translateY(14px) rotate(-1.5deg)}to{transform:none}}
+.card h2{font-size:clamp(1.25rem,4vw,1.6rem);font-weight:800;line-height:1.15;margin-top:6px}
+.card p{margin:10px 0 0;color:var(--muted)}
+.trays{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:560px){.trays{grid-template-columns:1fr}}
+.tray{all:unset;cursor:pointer;border:2px solid var(--c);border-radius:10px;padding:12px 14px;background:var(--card);display:flex;flex-direction:column;gap:3px;transition:transform .12s,background .12s}
+.tray:hover{transform:translateY(-2px)}
+.tray:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.tray b{font-family:var(--display);font-size:1.05rem;color:var(--c)}
+.tray span{font-size:.85rem;color:var(--muted);line-height:1.35}
+.tray kbd{font:500 .7rem var(--mono);color:var(--muted)}
+.tray[data-k="ai"]{--c:var(--ai)} .tray[data-k="pair"]{--c:var(--pair)} .tray[data-k="solo"]{--c:var(--solo)}
+.tray[disabled]{cursor:default;opacity:.45;transform:none}
+.tray.picked{opacity:1;background:color-mix(in srgb,var(--c) 14%,var(--card))}
+.verdict{border-left:4px solid var(--v);background:var(--card);border-radius:0 10px 10px 0;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.verdict h3{font-size:1.15rem;color:var(--v)}
+.verdict p{margin:0}
+.tests{display:flex;gap:8px;flex-wrap:wrap}
+.test{font:500 .74rem var(--mono);border:1px solid var(--line);border-radius:999px;padding:3px 10px;color:var(--muted)}
+.test strong{color:var(--ink);font-weight:500}
+.next{all:unset;cursor:pointer;align-self:flex-end;font-family:var(--display);font-weight:800;background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:8px}
+.next:focus-visible{outline:3px solid var(--ai);outline-offset:2px}
+.goals{border-top:1px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:6px}
+.goals ol{margin:0;padding-left:1.2em;color:var(--muted);max-width:65ch}
+.goals li{margin:3px 0}
+.end h2{font-size:clamp(1.6rem,5vw,2.2rem);font-weight:800}
+.qs{display:grid;gap:10px}
+.q{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.q b{font-family:var(--display)}
+.miss{font-size:.92rem;color:var(--muted);margin:4px 0}
+.miss b{color:var(--ink)}
+@media (prefers-reduced-motion:reduce){.card{animation:none}.tray{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="label">A triage game from Ethan Mollick's “15 Times to Use AI, and 5 Not To”</div>
+    <h1>Delegate or Do</h1>
+    <p class="lede">Twelve tasks land on your desk. Sort each into a tray. About four minutes. Keys 1, 2, 3 work too.</p>
+  </header>
+  <div class="ledger"><div class="pips" id="pips"></div><div class="score" id="score">0 / 24 pts</div></div>
+  <main class="desk" id="desk"></main>
+  <section class="goals">
+    <div class="label">Learning goals</div>
+    <ol>
+      <li>Tell apart tasks where AI helps (quantity, variety, low-stakes summaries, reframing for audiences, second opinions) from tasks where it hurts (learning, high-accuracy work, work where the effort is the point).</li>
+      <li>Ask three questions before using AI on anything: <em>Can I check the output? What does a mistake cost? Is the effort the point?</em></li>
+      <li>Expect the jagged frontier: AI can fail at simple things like counting characters while handling hard things well.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+const TRAYS = {
+  ai:   {name:"AI drafts it",   hint:"Use the output after a quick skim"},
+  pair: {name:"You + AI",       hint:"You lead and judge; AI gives options or a second look"},
+  solo: {name:"Do it yourself", hint:"Leave AI out of this one"}
+};
+// pts per tray; tests: [canCheck, errorCost, effortIsPoint]
+const CARDS = [
+  {t:"Come up with names for the club's spring fundraiser", d:"The board wants a shortlist by tonight. Nobody has ideas yet.",
+   pts:{ai:2,pair:2,solo:0}, tests:["Yes","Low","No"], rule:"Work that needs quantity",
+   why:"The best idea comes from having many. People run dry after a handful; AI can produce dozens that don't repeat. You still pick the winner."},
+  {t:"Actually understand hypothesis testing before Friday's stats exam", d:"You have the textbook chapter and two problem sets.",
+   pts:{ai:0,pair:1,solo:2}, tests:["No","High","Yes"], rule:"Learning something new",
+   why:"A summary isn't the same as reading, and having AI solve problems doesn't teach you to solve them. Do the work. Asking AI follow-up questions while you read is fine, which is why “You + AI” gets partial credit."},
+  {t:"Get the gist of a 60-page industry report", d:"Someone might mention it in a meeting. Nobody expects you to know the details.",
+   pts:{ai:2,pair:1,solo:0}, tests:["Partly","Low","No"], rule:"Low-stakes summarizing",
+   why:"AI summarizes long documents well. The conditions matter: mistakes are cheap here and you aren't expected to know the material in depth."},
+  {t:"Fill in exact dollar amounts and dates in a funder compliance report", d:"The numbers come from three spreadsheets and the report gets audited.",
+   pts:{ai:0,pair:1,solo:2}, tests:["Hard","High","No"], rule:"Very high accuracy required",
+   why:"AI errors are plausible, so they're hard to spot, and people stop looking. When every figure must be right, typing it from the source is safer. Using AI and checking every number earns partial credit."},
+  {t:"Turn one new volunteer policy into versions for three audiences", d:"New volunteers, shift leads, and the board each need a different version.",
+   pts:{ai:2,pair:2,solo:0}, tests:["Yes","Low","No"], rule:"Translating between frames",
+   why:"Reframing content you already understand for different readers is something AI does very well, including raising or lowering the complexity. You know the policy, so you can spot a bad version fast."},
+  {t:"You've been stuck on one sentence in your paper for 20 minutes", d:"The rest of the paragraph is done. This sentence just won't land.",
+   pts:{ai:0,pair:2,solo:1}, tests:["Yes","Low","Partly"], rule:"Keeping you moving",
+   why:"Ask for thirty different endings. You probably won't use any of them word for word, but one will get you unstuck. Letting AI write the sentence for you hands over the part you're graded on."},
+  {t:"Write a reflection essay where the assignment is figuring out what you think", d:"The professor said there's no right answer.",
+   pts:{ai:0,pair:1,solo:2}, tests:["No","Medium","Yes"], rule:"When the effort is the point",
+   why:"Some struggle is the whole value. Skip it and you skip the moment where your own view takes shape."},
+  {t:"Check that your LinkedIn headline fits the 220-character limit", d:"It's close. You need an exact count.",
+   pts:{ai:0,pair:1,solo:2}, tests:["Easy","Low","No"], rule:"The jagged frontier",
+   why:"Language models are oddly bad at counting characters, the same way they've miscounted the r's in “strawberry.” A character counter is faster and correct. AI is good at things you wouldn't expect and bad at things you wouldn't expect."},
+  {t:"Preview how a skeptical interviewer might react to your project pitch", d:"Your mock interview is tomorrow and nobody is around to practice with.",
+   pts:{ai:1,pair:2,solo:0}, tests:["Yes","Low","No"], rule:"Simulated perspectives",
+   why:"A first pass at what a hostile, friendly, or naive listener might think is a strong use. You stay in charge of which objections matter."},
+  {t:"Write a peer evaluation for a teammate on your group project", d:"It goes to the professor and affects their grade.",
+   pts:{ai:0,pair:1,solo:2}, tests:["No","High","Yes"], rule:"Work that only means something from a human",
+   why:"Mollick calls out people who automate performance reviews. They only have value because a person who watched the work wrote them."},
+  {t:"Write the SQL for a dashboard you could build yourself", d:"You know the tables and can check results against last month's totals.",
+   pts:{ai:1,pair:2,solo:1}, tests:["Yes","Medium","No"], rule:"Work where you're the expert",
+   why:"Coding is an area where AI reliably helps, and your expertise is what makes it safe. You can tell quickly whether the query is right because you know what the totals should be."},
+  {t:"Get a second opinion on the conclusion from your survey analysis", d:"You ran it in R and you think one finding is the headline.",
+   pts:{ai:0,pair:2,solo:1}, tests:["Yes","Medium","No"], rule:"Second opinions",
+   why:"Give AI the data and see whether it reaches the same conclusion. Treat a disagreement as a reason to look again, not a verdict. And watch for AI agreeing with you just because you sound sure."}
+];
+
+const desk = document.getElementById('desk'), pipsEl = document.getElementById('pips'), scoreEl = document.getElementById('score');
+let i = 0, total = 0, results = [], answered = false;
+
+function pips(){
+  pipsEl.innerHTML = CARDS.map((_,k)=>{
+    const r = results[k]; const cls = r===undefined ? (k===i?'now':'') : r===2?'g':r===1?'m':'b';
+    return `<span class="pip ${cls}" title="Card ${k+1}"></span>`;
+  }).join('');
+  scoreEl.textContent = `${total} / ${CARDS.length*2} pts`;
+}
+
+function deal(){
+  answered = false;
+  const c = CARDS[i];
+  desk.innerHTML = `
+    <article class="card">
+      <div class="label">Task ${i+1} of ${CARDS.length}</div>
+      <h2>${c.t}</h2><p>${c.d}</p>
+    </article>
+    <div class="trays">${Object.entries(TRAYS).map(([k,v],n)=>
+      `<button class="tray" id="tray-${k}" data-k="${k}"><kbd>${n+1}</kbd><b>${v.name}</b><span>${v.hint}</span></button>`).join('')}</div>
+    <div id="fb"></div>`;
+  desk.querySelectorAll('.tray').forEach(b=>b.addEventListener('click',()=>pick(b.dataset.k)));
+  pips();
+}
+
+function pick(k){
+  if(answered) return; answered = true;
+  const c = CARDS[i], p = c.pts[k]; total += p; results[i] = p;
+  desk.querySelectorAll('.tray').forEach(b=>{b.disabled = true; if(b.dataset.k===k) b.classList.add('picked');});
+  const best = Object.keys(c.pts).filter(x=>c.pts[x]===2).map(x=>TRAYS[x].name).join(" or ");
+  const head = p===2 ? "Good call" : p===1 ? "Defensible, not ideal" : "That one backfires";
+  const v = p===2 ? 'var(--good)' : p===1 ? 'var(--meh)' : 'var(--bad)';
+  document.getElementById('fb').innerHTML = `
+    <div class="verdict" style="--v:${v}">
+      <h3>${head} · +${p}</h3>
+      <div class="label">${c.rule} · best tray: ${best}</div>
+      <p>${c.why}</p>
+      <div class="tests">
+        <span class="test">Can you check it? <strong>${c.tests[0]}</strong></span>
+        <span class="test">Cost of a mistake <strong>${c.tests[1]}</strong></span>
+        <span class="test">Effort is the point? <strong>${c.tests[2]}</strong></span>
+      </div>
+      <button class="next" id="next">${i===CARDS.length-1 ? 'See results' : 'Next task →'}</button>
+    </div>`;
+  const n = document.getElementById('next'); n.addEventListener('click',advance); n.focus();
+  pips();
+}
+
+function advance(){ i++; i < CARDS.length ? deal() : end(); }
+
+function end(){
+  pips();
+  const max = CARDS.length*2, pct = total/max;
+  const title = pct>=.85 ? "You know when to hand it off" : pct>=.6 ? "Solid instincts, a few blind spots" : "AI is a tool with a shape. Learn the shape.";
+  const misses = CARDS.map((c,k)=>({c,r:results[k]})).filter(x=>x.r<2);
+  desk.innerHTML = `
+    <div class="end" style="display:flex;flex-direction:column;gap:14px">
+      <div class="label">Final score · ${total} of ${max}</div>
+      <h2>${title}</h2>
+      <p style="margin:0;color:var(--muted)">AI is most useful where you already know enough to catch its mistakes, and least useful in the work that builds that knowledge. Take these three questions with you:</p>
+      <div class="qs">
+        <div class="q"><b>Can I check the output?</b> If you can't tell good from bad, you can't safely delegate.</div>
+        <div class="q"><b>What does a mistake cost?</b> AI errors look plausible. Cheap mistakes are fine; expensive ones need you.</div>
+        <div class="q"><b>Is the effort the point?</b> If the struggle is how you learn or form a view, keep it.</div>
+      </div>
+      ${misses.length ? `<div><div class="label" style="margin-bottom:4px">Worth another look</div>${misses.map(x=>`<p class="miss"><b>${x.c.rule}:</b> ${x.c.t.toLowerCase()}</p>`).join('')}</div>` : ''}
+      <button class="next" id="again">Play again</button>
+    </div>`;
+  const a = document.getElementById('again'); a.addEventListener('click',()=>{i=0;total=0;results=[];deal();}); a.focus();
+}
+
+document.addEventListener('keydown',e=>{
+  if(answered || i>=CARDS.length) return;
+  const k = {"1":"ai","2":"pair","3":"solo"}[e.key]; if(k) pick(k);
+});
+deal();
+</script>
+
+</body></html>
